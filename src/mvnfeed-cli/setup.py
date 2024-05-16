@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 NAME = 'mvnfeed-cli'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 
 # To install the library, run the following
 #
@@ -11,7 +11,8 @@ VERSION = '0.0.1'
 # http://pypi.python.org/pypi/setuptools
 
 REQUIRES = [
-    'knack==0.5.1',
+    'knack==0.11.0',
+    'requests==2.27.1',
     'mvnfeed-cli-common==' + VERSION,
     'mvnfeed-cli-transfer==' + VERSION,
 ]

@@ -6,3 +6,6 @@ __pycache__
 *.pyc
 *.egg-info
 requirements.txt
+.python-version
+*.migrate
+*.log
