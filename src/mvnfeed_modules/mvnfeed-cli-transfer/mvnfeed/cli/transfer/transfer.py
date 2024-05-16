@@ -7,10 +7,12 @@ import logging
 import os.path
 import requests
 import shutil
+import base64
 import xml.etree.ElementTree as ET
 try:
     # Python 3
     from urllib.request import Request, urlopen
+    import subprocess
 except ImportError:
     # Python 2
     from urllib2 import Request, urlopen
@@ -197,7 +199,37 @@ def _java_artifacts(artifact_fullname, artifact_type, artifact_path, transfer_de
             'target': True
         },
         {
+            'name': artifact_fullname + '.module',
+            'path': artifact_path,
+            'transfer_deps': transfer_deps,
+            'target': False
+        },
+        {
+            'name': artifact_fullname + '.module.sha512',
+            'path': artifact_path,
+            'transfer_deps': transfer_deps,
+            'target': False
+        },
+        {
+            'name': artifact_fullname + '.aar',
+            'path': artifact_path,
+            'transfer_deps': transfer_deps,
+            'target': False
+        },
+        {
+            'name': artifact_fullname + '.aar.sha512',
+            'path': artifact_path,
+            'transfer_deps': transfer_deps,
+            'target': False
+        },
+        {
             'name': artifact_fullname + '.pom',
+            'path': artifact_path,
+            'transfer_deps': transfer_deps,
+            'target': False
+        },
+        {
+            'name': artifact_fullname + '.pom.sha512',
             'path': artifact_path,
             'transfer_deps': transfer_deps,
             'target': False
@@ -209,6 +241,11 @@ def _java_artifacts(artifact_fullname, artifact_type, artifact_path, transfer_de
         },
         {
             'name': artifact_fullname + '-sources.jar',
+            'path': artifact_path,
+            'target': False
+        },
+        {
+            'name': artifact_fullname + '-sources.jar.sha512',
             'path': artifact_path,
             'target': False
         },
@@ -260,7 +297,7 @@ def _download_file(from_repository, path, filename, length=16*1024):
         request = Request(url)
         if AUTHORIZATION in from_repository and from_repository[AUTHORIZATION]:
             logging.debug('authorization header added')
-            request.add_header('Authorization', from_repository[AUTHORIZATION])
+            request.add_header('Authorization', _compute_authorization(from_repository[AUTHORIZATION]))
         else:
             logging.debug('no authorization configured')
 
@@ -282,7 +319,7 @@ def _already_uploaded(to_repository, path):
 
     if AUTHORIZATION in to_repository and to_repository[AUTHORIZATION]:
         logging.debug('authorization header added')
-        headers = {'Authorization': to_repository[AUTHORIZATION]}
+        headers = {'Authorization': _compute_authorization(to_repository[AUTHORIZATION])}
     else:
         logging.debug('no authorization configured')
         headers = {}
@@ -312,7 +349,8 @@ def _upload_file(to_repository, path, filename):
     logging.debug('uploading to ' + url)
     if AUTHORIZATION in to_repository and to_repository[AUTHORIZATION]:
         logging.debug('authorization header added')
-        headers = {'Authorization': to_repository[AUTHORIZATION]}
+        headers = {'Authorization': _compute_authorization(to_repository[AUTHORIZATION])}
+        logging.debug("headers=%s" %headers)
     else:
         logging.debug('no authorization configured')
         headers = {}
@@ -330,3 +368,17 @@ def _upload_file(to_repository, path, filename):
 
 def _append_url(base_url, fragment):
     return base_url + fragment if base_url.endswith('/') else base_url + '/' + fragment
+
+def _compute_authorization(configured_value):
+    if configured_value.startswith('GCloud:'):
+        # special case gcloud
+        gcloud_username = 'oauth2accesstoken'
+        result = subprocess.run(['gcloud', 'auth', 'print-access-token'],stdout=subprocess.PIPE)
+        gcloud_token = result.stdout.decode('utf-8') 
+        logging.debug("GCloud Token received: %s",gcloud_token)
+        encoded = base64.b64encode((gcloud_username + ':' + gcloud_token).encode('utf-8'))
+        return 'Basic ' + encoded.decode('utf-8')
+                
+    else:
+        return configured_value
+    

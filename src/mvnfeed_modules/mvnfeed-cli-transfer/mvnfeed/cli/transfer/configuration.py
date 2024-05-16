@@ -48,10 +48,12 @@ def add_repository(name, username, url=None):
         raise ValueError('Username must be defined')
     if url is None:
         raise ValueError('Url must be defined')
-
-    password = getpass.getpass()
-    encoded = base64.b64encode((username + ':' + password).encode('utf-8'))
-    authorization = 'Basic ' + encoded.decode('utf-8')
+    if username.startswith('GCloud'):
+        authorization = "GCloud:"
+    else:
+        password = getpass.getpass()
+        encoded = base64.b64encode((username + ':' + password).encode('utf-8'))
+        authorization = 'Basic ' + encoded.decode('utf-8')
 
     config = load_config()
     config[repo_section_name(name)] = {
